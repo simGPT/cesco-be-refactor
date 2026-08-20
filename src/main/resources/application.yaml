@@ -3,8 +3,9 @@ spring:
     name: likelion-hackathon-cesco
 
 # Address open api
-ADDR_KEY: ${ADDR_KEY:}
-ADDR_URL: ${ADDR_URL:}
+addr:
+  key: ${ADDR_KEY:}
+  url: ${ADDR_URL:}
 
 # openai
 openai:
