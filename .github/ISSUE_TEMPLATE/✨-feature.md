@@ -2,15 +2,16 @@
 name: "✨ Feature"
 about: 기능 추가 이슈 템플릿
 title: "✨Feat: "
-labels: "✨ Feature"
+labels: feat
 assignees: ''
 
 ---
 
-## 📌 Description
--
--
+## 📝 구현 기능 설명
 
-##  :memo: Todo
+## 🛠️ 작업 상세 절차
+
 - [ ]
 - [ ]
+
+## 🔗 고려 사항 (선택)
