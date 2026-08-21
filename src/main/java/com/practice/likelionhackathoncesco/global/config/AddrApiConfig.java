@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AddrApiConfig {
 
-  @Value("${ADDR_KEY}")
+  @Value("${addr.key}")
   private String confmKey;
 
-  @Value("${ADDR_URL}")
+  @Value("${addr.url}")
   private String confmUrl;
 }

@@ -24,28 +24,6 @@ repositories {
     mavenCentral()
 }
 
-// 서브모듈 설정 파일을 메인 리소스로 복사
-processResources {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE  // EXCLUDE → INCLUDE로 변경
-
-    // 서브모듈의 설정 파일들을 메인 리소스로 복사
-    from('src/main/resources/cesco-BackEnd-config') {
-        include '**/*.properties'
-        include '**/*.yml'
-        include '**/*.yaml'
-        into '/'  // 루트 리소스 디렉토리로
-    }
-}
-
-// sourceSets 중복 제거 (processResources로 대체)
-// sourceSets {
-//     main {
-//         resources {
-//             srcDir 'src/main/resources'
-//             srcDir 'src/main/resources/cesco-BackEnd-config'
-//         }
-//     }
-// }
 
 spotless {
     java {

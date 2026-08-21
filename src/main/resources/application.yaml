@@ -1,0 +1,107 @@
+spring:
+  application:
+    name: likelion-hackathon-cesco
+
+# Address open api
+addr:
+  key: ${ADDR_KEY:}
+  url: ${ADDR_URL:}
+
+# openai
+openai:
+  api:
+    key: ${OPENAI_SECRET_KEY:}
+    model: ${OPENAI_MODEL:}
+    url: ${OPENAI_URL:}
+
+# naver ocr
+naver:
+  ocr:
+    invoke-url: ${NAVER_OCR_INVOKE_URL:}
+    secret-key: ${NAVER_OCR_SECRET_KEY:}
+
+# aws s3
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: ${S3_BUCKET:}
+      path:
+        propertyRegistry: ${S3_PATH_PROPERTY_REGISTRY:}
+        complaint: ${S3_PATH_COMPLAINT:}
+        fraudReport: ${S3_PATH_FRAUD_REPORT:}
+
+app:
+  default:
+    username: cesco
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS} # TODO: 추후 prod 서버에서 따로 설정
+
+spring.cloud.config.username: ${SPRING_CONFIG_USERNAME}
+spring.cloud.config.password: ${SPRING_CONFIG_PASSWORD}
+
+---
+
+# local
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:mysql://localhost:3306/setbangsari?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+---
+
+# dev
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+---
+
+# prod
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
