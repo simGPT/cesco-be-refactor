@@ -1,9 +1,11 @@
 name: CI
 
-# 트리거 설정: PR 생성, 동기화, 재오픈 시 실행
+# 트리거 설정
 on:
+  push:
+    branches: [main, develop] # main, develop에 push 시
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    branches: [main, develop] # main, develop에 pr 생성, 동기화, 재오픈 시
 
 # GitHub Actions 실행에 필요한 권한 설정
 permissions:
@@ -15,14 +17,12 @@ jobs:
   # 첫 번째 Job: 코드 스타일 검사
   spotless:
     name: Code Style Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # github에서 제공해주는 서버 버전 고정
 
     steps:
       # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       # 2. JDK 21 설정
       - name: Set up JDK 21
@@ -45,15 +45,12 @@ jobs:
     name: Build
     # spotless job이 성공해야 실행됨
     needs: spotless
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04 # github에서 제공해주는 서버 버전 고정
 
     steps:
       # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          submodules: true
-          token: ${{ secrets.GIT_ACTION_TOKEN }}
 
       # 2. JDK 21 설정
       - name: Set up JDK 21
