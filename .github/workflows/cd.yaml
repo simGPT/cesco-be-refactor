@@ -14,37 +14,31 @@ jobs:
       # 1. 레포지토리 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GIT_ACTION_TOKEN }}
-          submodules: true  # 서브모듈 포함 체크아웃
 
-      # 2. 서브모듈 초기화
-      - name: Update submodule
-        # 서브모듈을 초기화하고 최신 상태로 가져옴
-        run: git submodule update --init --recursive
-
-      # 3. JDK 21 설정
+      # 2. JDK 21 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: gradle
 
-      # 4. gradlew에 실행 권한 부여
+      # 3. gradlew에 실행 권한 부여
       - name: Grant execute permission for Gradlew
         run: chmod +x gradlew
 
-      # 5. Gradle로 빌드 (bootJar 생성)
+      # 4. Gradle로 빌드 (bootJar 생성)
       - name: Build with Gradle
+        # 일단 dev 서버 배포, prod는 혹시 추후 운영 예약용
         run: |
-          ./gradlew clean bootjar -Pprofile=prod 
+          ./gradlew clean bootJar -Pprofile=dev
 
-      # 6. Docker Hub 로그인
+      # 5. Docker Hub 로그인
       - name: Log in to Docker Hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      # 7. Docker 이미지 빌드 및 Docker Hub로 push
+      # 6. Docker 이미지 빌드 및 Docker Hub로 push
       - name: Docker build & push
         run: |
           docker buildx build -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }} --push .
@@ -68,14 +62,14 @@ jobs:
         run: |
           echo "Current user: $(whoami)"
           echo "Home directory: $HOME"
-          mkdir -p $HOME/cesco-BackEnd
-          cp docker-compose.yml $HOME/cesco-BackEnd/
-          cp .env $HOME/cesco-BackEnd/
+          mkdir -p $HOME/cesco-be-refactor
+          cp docker-compose.yml $HOME/cesco-be-refactor/
+          cp .env $HOME/cesco-be-refactor/
 
       # 4. Docker 배포 실행
       - name: Deploy with Docker
         run: |
-          cd $HOME/cesco-BackEnd
+          cd $HOME/cesco-be-refactor
           docker compose down
           docker compose pull
-          docker compose up -d --build
+          docker compose up -d
