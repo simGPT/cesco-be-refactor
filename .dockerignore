@@ -21,6 +21,6 @@ logs/
 .git/
 .gitignore
 README.md
-docker-compose.yml
+docker-compose.yaml
 Dockerfile
 .dockerignore
