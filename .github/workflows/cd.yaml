@@ -9,7 +9,7 @@ on:
 jobs:
   # 1단계: 빌드
   build:
-    runs-on: self-hosted  # self-hosted runner에서 실행
+    runs-on: ubuntu-22.04
     steps:
       # 1. 레포지토리 체크아웃
       - name: Checkout repository
@@ -30,46 +30,44 @@ jobs:
       # 4. Gradle로 빌드 (bootJar 생성)
       - name: Build with Gradle
         # 일단 dev 서버 배포, prod는 혹시 추후 운영 예약용
-        run: |
-          ./gradlew clean bootJar -Pprofile=dev
+        run: ./gradlew clean bootJar -Pprofile=dev
 
       # 5. Docker Hub 로그인
       - name: Log in to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       # 6. Docker 이미지 빌드 및 Docker Hub로 push
       - name: Docker build & push
-        run: |
-          docker buildx build -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }} --push .
+        run: docker buildx build -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }} --push .
 
   # 2단계: 배포
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     needs: build  # build job이 끝난 뒤 실행됨
     steps:
-      # 1. 레포지토리 재체크아웃
+      # 1. 레포지토리 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # 2. .env 파일 생성
       - name: Create .env file
-        run: |
-          echo "${{ secrets.ENV_DEV }}" > .env
+        run: echo "${{ secrets.ENV_DEV }}" > .env
 
-      # 3. 배포 디렉토리 설정
-      - name: Setup deployment directory
+      # 3. docker-compose.yml, .env 파일을 서버로 전송
+      - name: Copy files to server
         run: |
-          echo "Current user: $(whoami)"
-          echo "Home directory: $HOME"
-          mkdir -p $HOME/cesco-be-refactor
-          cp docker-compose.yml $HOME/cesco-be-refactor/
-          cp .env $HOME/cesco-be-refactor/
+          echo "${{ secrets.SERVER_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+          ssh-keyscan ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p ~/cesco-be-refactor"
+          scp -i key.pem docker-compose.yml .env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/cesco-be-refactor/
 
-      # 4. Docker 배포 실행
-      - name: Deploy with Docker
+      # 4. SSH로 서버 접속 후 Docker 배포 실행
+      - name: Deploy via SSH
         run: |
-          cd $HOME/cesco-be-refactor
-          docker compose down
-          docker compose pull
-          docker compose up -d
+          ssh -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+            cd ~/cesco-be-refactor &&
+            docker compose down &&
+            docker compose pull &&
+            docker compose up -d
+          "
