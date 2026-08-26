@@ -6,6 +6,7 @@ on:
     branches:
       - main
   workflow_dispatch:  # 수동 실행 가능
+
 jobs:
   # 1단계: 빌드
   build:
