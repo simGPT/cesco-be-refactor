@@ -40,10 +40,7 @@ app:
     username: cesco
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS} # TODO: 추후 prod 서버에서 따로 설정
-
-spring.cloud.config.username: ${SPRING_CONFIG_USERNAME}
-spring.cloud.config.password: ${SPRING_CONFIG_PASSWORD}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:} # TODO: 추후 dev/prod 서버에서 따로 설정
 
 ---
 
