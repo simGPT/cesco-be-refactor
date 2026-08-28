@@ -1,6 +1,5 @@
 # Gradle 관련
 .gradle/
-build/
 !gradle/wrapper/gradle-wrapper.jar
 
 # IDE 관련
