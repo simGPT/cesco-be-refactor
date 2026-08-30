@@ -59,6 +59,7 @@ jobs:
         run: |
           echo "${{ secrets.SERVER_SSH_KEY }}" > key.pem
           chmod 600 key.pem
+          mkdir -p ~/.ssh
           ssh-keyscan ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           ssh -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p ~/cesco-be-refactor"
           scp -i key.pem docker-compose.yml .env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/cesco-be-refactor/
