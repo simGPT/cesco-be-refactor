@@ -61,9 +61,9 @@ jobs:
           chmod 600 key.pem
           mkdir -p ~/.ssh
           ssh-keyscan ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-          ssh -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p ~/cesco-be-refactor"
-          scp -i key.pem docker-compose.yml .env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/cesco-be-refactor/
+          ssh -i key.pem ubuntu@${{ secrets.SERVER_HOST }} "mkdir -p ~/cesco-be-refactor"
+          scp -i key.pem docker-compose.yml .env ubuntu@${{ secrets.SERVER_HOST }}:~/cesco-be-refactor/
 
       # 4. SSH로 서버 접속 후 Docker 배포 실행
       - name: Deploy via SSH
-        run: ssh -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd ~/cesco-be-refactor && docker compose down && docker compose pull && docker compose up -d"
+        run: ssh -i key.pem ubuntu@${{ secrets.SERVER_HOST }} "cd ~/cesco-be-refactor && docker compose down && docker compose pull && docker compose up -d"
