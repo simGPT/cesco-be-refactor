@@ -1,6 +1,7 @@
 services:
   app:
     image: ${DOCKER_USERNAME}/${DOCKER_REPO}:latest
+    restart: unless-stopped # 컨테이너를 수동으로 멈추지 않는 이상 자동으로 재시작하도록 설정
     ports:
       - "8080:8080"  # 호스트의 8080 포트를 컨테이너의 8080 포트와 매핑
     env_file:
@@ -21,6 +22,7 @@ services:
 
   mysql:
     image: mysql:8.0  # 공식 MySQL 8.0 이미지를 사용
+    restart: unless-stopped # 컨테이너를 수동으로 멈추지 않는 이상 자동으로 재시작하도록 설정
     ports:
       - "3306:3306"  # 호스트와 컨테이너의 MySQL 포트를 매핑
     environment:
