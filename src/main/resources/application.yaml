@@ -77,7 +77,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update # 일단 개발 서버이기 때문에 편의를 위해 none -> update로 수정
     show-sql: false
     properties:
       hibernate:
