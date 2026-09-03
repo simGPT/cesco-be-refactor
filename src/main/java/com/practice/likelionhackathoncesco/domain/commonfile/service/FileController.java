@@ -18,14 +18,17 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1")
 @Tag(name = "S3", description = "S3 업로드 테스트용 API")
 public class FileController {
-    private final FileService fileService;
+  private final FileService fileService;
 
-    @Operation(summary = "S3 업로드 테스트용 API", description = "S3 계정 및 버킷 설정 변경 후 테스트를 위한 API")
-    @PostMapping(value = "/s3/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE) // 파일 업로드하는 형식으로 설정
-    public ResponseEntity<BaseResponse<String>> upload(@Parameter(description = "업로드 할 파일") @RequestParam("uploadFile") MultipartFile uploadFile) {
+  @Operation(summary = "S3 업로드 테스트용 API", description = "S3 계정 및 버킷 설정 변경 후 테스트를 위한 API")
+  @PostMapping(
+      value = "/s3/upload",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE) // 파일 업로드하는 형식으로 설정
+  public ResponseEntity<BaseResponse<String>> upload(
+      @Parameter(description = "업로드 할 파일") @RequestParam("uploadFile") MultipartFile uploadFile) {
 
-        String keyName = fileService.s3UploadTest("test", uploadFile); // test 경로는 문자열로 전달
+    String keyName = fileService.s3UploadTest("test", uploadFile); // test 경로는 문자열로 전달
 
-        return ResponseEntity.ok(BaseResponse.success("S3 파일 업로드 테스트 완료", keyName));
-    }
+    return ResponseEntity.ok(BaseResponse.success("S3 파일 업로드 테스트 완료", keyName));
+  }
 }
