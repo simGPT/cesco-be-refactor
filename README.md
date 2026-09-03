@@ -3,7 +3,7 @@
 - 🎉 **Start:** Start New Project [:tada:]
 - ✨ **Feat:** 새로운 기능을 추가 [:sparkles:]
 - 🐛 **Fix:** 버그 수정 [:bug:]
-- 🎨 **Design:** CSS 등 사용자 UI 디자인 변경 [:art:]
+- 🎨 **Design:** 코드 스타일 포맷 변경 [:art:]
 - ♻️ **Refactor:** 코드 리팩토링 [:recycle:]
 - 🔧 **Settings:** Changing configuration files [:wrench:]
 - 🗃️ **Comment:** 필요한 주석 추가 및 변경 [:card_file_box:]
@@ -55,6 +55,7 @@ git push origin main
 9. Docker Image Push ```docker push "본인 dockerhub repo 이름"/helfoome:latest```
 
 ### 🐋 Docker 실행중인 컨테이너 중지하기 🐋
+
 1. 실행 중인 컨테이너 목록 확인 ```docker ps```
 2. 컨테이너 중지 실행 중인 컨테이너의 CONTAINER ID를 찾아서 중지. ```docker stop <CONTAINER ID>```
 3. 컨테이너의 삭제가 필요할 경우 ```docker rm <CONTAINER ID>```

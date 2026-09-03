@@ -24,16 +24,16 @@ naver:
 cloud:
   aws:
     credentials:
-      access-key: ${AWS_ACCESS_KEY:}
-      secret-key: ${AWS_SECRET_KEY:}
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
     region:
       static: ap-northeast-2
     s3:
-      bucket: ${S3_BUCKET:}
+      bucket: ${S3_BUCKET}
       path:
-        propertyRegistry: ${S3_PATH_PROPERTY_REGISTRY:}
-        complaint: ${S3_PATH_COMPLAINT:}
-        fraudReport: ${S3_PATH_FRAUD_REPORT:}
+        propertyRegistry: ${S3_PATH_PROPERTY_REGISTRY} # 등기부등본 파일 저장 경로
+        complaint: ${S3_PATH_COMPLAINT} # 고소장 파일 저장 경로
+        fraudReport: ${S3_PATH_FRAUD_REPORT} # 신고된 등기부등본 저장 경로
 
 app:
   default:
