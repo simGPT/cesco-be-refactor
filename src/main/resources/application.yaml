@@ -17,8 +17,8 @@ openai:
 # naver ocr
 naver:
   ocr:
-    invoke-url: ${NAVER_OCR_INVOKE_URL:}
-    secret-key: ${NAVER_OCR_SECRET_KEY:}
+    invoke-url: ${NAVER_OCR_INVOKE_URL} # ocr 요청 URL
+    secret-key: ${NAVER_OCR_SECRET_KEY} # api 인증 키
 
 # aws s3
 cloud:

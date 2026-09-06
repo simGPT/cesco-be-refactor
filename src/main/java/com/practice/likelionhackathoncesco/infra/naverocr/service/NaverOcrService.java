@@ -1,6 +1,7 @@
 package com.practice.likelionhackathoncesco.infra.naverocr.service;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.practice.likelionhackathoncesco.domain.analysisreport.entity.AnalysisReport;
@@ -14,19 +15,12 @@ import com.practice.likelionhackathoncesco.infra.naverocr.dto.ImageDto;
 import com.practice.likelionhackathoncesco.infra.naverocr.dto.request.OcrRequest;
 import com.practice.likelionhackathoncesco.infra.naverocr.dto.response.OcrResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -93,8 +87,13 @@ public class NaverOcrService {
   // pdf 전용 ocr 요청 생성
   protected OcrRequest createOcrRequest(String s3key, String fileName) {
 
-    // s3 객체 url로 요청을 보냄
-    String s3Url = amazonS3.getUrl(s3Config.getBucket(), s3key).toString();
+    // s3 객체 url로 요청을 보냄(presignedUrl 방식으로 변경)
+    Date expiration = new Date(System.currentTimeMillis() + 1000 * 60 * 10);
+    GeneratePresignedUrlRequest presignedUrlRequest =
+        new GeneratePresignedUrlRequest(s3Config.getBucket(), s3key)
+            .withMethod(com.amazonaws.HttpMethod.GET)
+            .withExpiration(expiration);
+    String s3Url = amazonS3.generatePresignedUrl(presignedUrlRequest).toString();
 
     log.info("생성된 S3 URL: {}", s3Url);
     log.info("버킷명: {}, S3 키: {}", s3Config.getBucket(), s3key);
