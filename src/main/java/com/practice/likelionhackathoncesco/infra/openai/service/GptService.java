@@ -4,10 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.practice.likelionhackathoncesco.domain.analysisreport.entity.AnalysisReport;
-import com.practice.likelionhackathoncesco.domain.analysisreport.entity.ProcessingStatus;
-import com.practice.likelionhackathoncesco.domain.analysisreport.exception.AnalysisReportErrorCode;
-import com.practice.likelionhackathoncesco.domain.analysisreport.repository.AnalysisReportRepository;
 import com.practice.likelionhackathoncesco.global.exception.CustomException;
 import com.practice.likelionhackathoncesco.infra.naverocr.dto.response.OcrResponse;
 import com.practice.likelionhackathoncesco.infra.naverocr.service.NaverOcrService;
@@ -41,7 +37,6 @@ public class GptService {
   private final GptConfig gptConfig;
   private final ObjectMapper objectMapper;
   private final NaverOcrService naverOcrService;
-  private final AnalysisReportRepository analysisReportRepository;
 
   // 근저당 총액을 알아내기 위한 프롬프트 생성 메소드
   public List<Map<String, String>> createPromptForDept(
@@ -67,13 +62,6 @@ public class GptService {
 
     // 전월세 여부 문자열로 변환
     String rentType = gptAnalysisRequest.getIsMonthlyRent() == 1 ? "월세" : "전세";
-
-    // 분석 상태 수정 -> GPT 설명 생성 중
-    AnalysisReport analysisReport =
-        analysisReportRepository
-            .findById(reportId)
-            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
-    analysisReport.updateProcessingStatus(ProcessingStatus.GPT_PROCESSING);
 
     // gpt에게 행동지침을 주는 역할의 프롬프트
     prompts.add(Map.of("role", "system", "content", "너는 부동산 등기부 등본을 분석해서 위험요소를 판단하는 전문가야."));
@@ -169,13 +157,6 @@ public class GptService {
 
     // 전월세 여부 문자열로 변환
     String rentType = gptAnalysisRequest.getIsMonthlyRent() == 1 ? "월세" : "전세";
-
-    // 분석 상태 수정 -> GPT 설명 생성 중
-    AnalysisReport analysisReport =
-        analysisReportRepository
-            .findById(reportId)
-            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
-    analysisReport.updateProcessingStatus(ProcessingStatus.GPT_PROCESSING);
 
     // gpt에게 행동지침을 주는 역할의 프롬프트
     prompts.add(Map.of("role", "system", "content", "너는 부동산 등기부 등본을 분석해서 위험요소를 판단하는 전문가야."));
