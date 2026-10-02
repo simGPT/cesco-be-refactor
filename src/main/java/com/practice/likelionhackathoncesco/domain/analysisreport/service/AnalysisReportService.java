@@ -41,6 +41,15 @@ public class AnalysisReportService {
   private final FakerRepository fakerRepository;
 
   @Transactional
+  public void updateProcessingStatus(Long reportId, ProcessingStatus status) {
+    AnalysisReport analysisReport =
+        analysisReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
+    analysisReport.updateProcessingStatus(status);
+  }
+
+  @Transactional
   public Boolean deleteReport(Long reportId) { // 우선 사용X
     log.info("분석 리포트 삭제 요청: reportId={}", reportId);
 

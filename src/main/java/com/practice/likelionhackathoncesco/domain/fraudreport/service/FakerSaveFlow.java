@@ -2,6 +2,7 @@ package com.practice.likelionhackathoncesco.domain.fraudreport.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.practice.likelionhackathoncesco.domain.fraudreport.dto.response.FakerResponse;
+import com.practice.likelionhackathoncesco.infra.openai.client.GptApiClient;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptComplaintResponse;
 import com.practice.likelionhackathoncesco.infra.openai.service.GptComplaintService;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class FakerSaveFlow {
 
   private final GptComplaintService gptComplaintService;
+  private final GptApiClient gptApiClient;
 
   public List<FakerResponse> processSaveFakerInfo(Long fraudRegisterReportId) {
 
@@ -29,7 +31,7 @@ public class FakerSaveFlow {
     }
 
     // gpt-4o api 호출
-    String content = gptComplaintService.callGptAPI(prompts, String.valueOf(fraudRegisterReportId));
+    String content = gptApiClient.callGptAPI(prompts, String.valueOf(fraudRegisterReportId));
 
     // 응답 파싱
     List<GptComplaintResponse> list = gptComplaintService.parseGptComplaintResponseList(content);
