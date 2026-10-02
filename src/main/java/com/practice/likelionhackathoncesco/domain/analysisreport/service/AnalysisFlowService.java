@@ -7,6 +7,7 @@ import com.practice.likelionhackathoncesco.domain.analysisreport.entity.PathName
 import com.practice.likelionhackathoncesco.domain.analysisreport.entity.ProcessingStatus;
 import com.practice.likelionhackathoncesco.domain.analysisreport.repository.AnalysisReportRepository;
 import com.practice.likelionhackathoncesco.domain.commonfile.service.FileService;
+import com.practice.likelionhackathoncesco.infra.openai.client.GptApiClient;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptAnalysisRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptSecRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptDeptResponse;
@@ -31,6 +32,7 @@ public class AnalysisFlowService {
     private final AnalysisReportService analysisReportService;
     private final FileService fileService;
     private final AnalysisReportRepository analysisReportRepository;
+    private final GptApiClient gptApiClient;
 
     // 분석 리포트를 위한 등기부등본 S3 업로드 + DB 저장
     @Transactional
@@ -66,7 +68,7 @@ public class AnalysisFlowService {
         }
 
         // gpt-4o api 호출로 근저당 총액 응답 받기
-        String contentForDept = gptService.callGptAPI(promptsForDept, String.valueOf(reportId));
+        String contentForDept = gptApiClient.callGptAPI(promptsForDept, String.valueOf(reportId));
 
         // 근저당 총액 gpt 응답을 파싱하는 메소드
         GptDeptResponse gptDeptResponse = gptService.parseDeptResponse(contentForDept);
@@ -90,7 +92,7 @@ public class AnalysisFlowService {
         }
 
         // gpt-4o api 호출
-        String content = gptService.callGptAPI(prompts, String.valueOf(reportId));
+        String content = gptApiClient.callGptAPI(prompts, String.valueOf(reportId));
 
         // 응답 파싱
         GptResponse gptResponse = gptService.parseGptResponse(content);
