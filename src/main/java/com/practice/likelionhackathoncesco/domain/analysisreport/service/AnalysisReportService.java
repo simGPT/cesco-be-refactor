@@ -1,5 +1,7 @@
 package com.practice.likelionhackathoncesco.domain.analysisreport.service;
 
+import static com.practice.likelionhackathoncesco.domain.user.entity.PayStatus.PAID;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.practice.likelionhackathoncesco.domain.analysisreport.calculator.InsuranceScoreCalculator;
 import com.practice.likelionhackathoncesco.domain.analysisreport.calculator.SafetyScoreCalculator;
@@ -23,247 +25,246 @@ import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptAnalysisR
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptSecRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptDeptResponse;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
-import static com.practice.likelionhackathoncesco.domain.user.entity.PayStatus.PAID;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AnalysisReportService {
-    private final AmazonS3 amazonS3; // AWS SDK에서 제공하는 S3 클라이언트 객체
-    private final S3Config s3Config; // 버킷 이름과 경로 등 설정 정보
-    private final FileService fileService;
-    private final AnalysisReportRepository analysisReportRepository;
-    private final UserRepository userRepository;
-    private final FakerRepository fakerRepository;
+  private final AmazonS3 amazonS3; // AWS SDK에서 제공하는 S3 클라이언트 객체
+  private final S3Config s3Config; // 버킷 이름과 경로 등 설정 정보
+  private final FileService fileService;
+  private final AnalysisReportRepository analysisReportRepository;
+  private final UserRepository userRepository;
+  private final FakerRepository fakerRepository;
 
-    @Transactional
-    public void updateProcessingStatus(Long reportId, ProcessingStatus status) {
-        AnalysisReport analysisReport =
-                analysisReportRepository
-                        .findById(reportId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
-        analysisReport.updateProcessingStatus(status);
+  @Transactional
+  public void updateProcessingStatus(Long reportId, ProcessingStatus status) {
+    AnalysisReport analysisReport =
+        analysisReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
+    analysisReport.updateProcessingStatus(status);
+  }
+
+  @Transactional
+  public Boolean deleteReport(Long reportId) { // 우선 사용X
+    log.info("분석 리포트 삭제 요청: reportId={}", reportId);
+
+    try {
+      // FileService의 공통 삭제 메서드 활용
+      Boolean result = fileService.deleteFile(reportId, analysisReportRepository);
+
+      log.info("등기부등본 삭제 완료: reportId={}, result={}", reportId, result);
+      return result;
+
+    } catch (Exception e) {
+      log.error("등기부등본 삭제 실패: reportId={}", reportId, e);
+      throw new CustomException(AnalysisReportErrorCode.FILE_SERVER_ERROR);
+    }
+  }
+
+  public MyPageResponse getAllMyPageReport(Long userId) { // 응답 추후 필드 수정
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+    List<AnalysisReport> reports = analysisReportRepository.findAllByUserUserId(userId);
+
+    List<MyPageAnalysisResponse> analysisResponses =
+        reports.stream()
+            .map(
+                report ->
+                    MyPageAnalysisResponse.builder()
+                        .reportId(report.getReportId())
+                        .address(report.getAddress())
+                        .safetyScore(report.getSafetyScore())
+                        .summary(report.getSummary())
+                        .comment(report.getComment())
+                        .build())
+            .toList();
+
+    return MyPageResponse.builder()
+        .credit(user.getCredit()) // 해당 사용자의 크레딧
+        .postCount(user.getPostCount())
+        .reports(analysisResponses) // 해당 사용자의 분석 리포트 리스트
+        .build();
+  }
+
+  public MyPageAnalysisResponse getAnalysisReport(Long reportId) {
+
+    AnalysisReport report =
+        analysisReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
+
+    return MyPageAnalysisResponse.builder()
+        .reportId(report.getReportId())
+        .analysisReportUrl(amazonS3.getUrl(s3Config.getBucket(), report.getS3Key()).toString())
+        .comment(report.getComment())
+        .safetyScore(report.getSafetyScore())
+        .address(report.getAddress())
+        .summary(report.getSummary())
+        .safetyDescription(report.getSafetyDescription())
+        .insuranceDescription(report.getInsuranceDescription())
+        .warning(report.getWarning())
+        .build();
+  }
+
+  // 전월세 안전지수 로직 + 완전한 분석 리포트 반환 메소드 -> gptResponse 응답을 파싱해서 DB에 집어넣어야 함
+  @Transactional
+  public AnalysisReportResponse updateAnalysisReport(
+      GptResponse gptResponse, GptSecRequest gptSecRequest, Long reportId) {
+
+    log.info("[AnalysisReportService] 분석리포트 결과 업데이트 시도 : reportId={}", reportId);
+    if (gptResponse.getAddress() == null || gptResponse.getAddress().isBlank()) {
+      throw new CustomException(AnalysisReportErrorCode.INVALID_REPORT_ADDRESS);
+    }
+    if (gptResponse.getSummary() == null || gptResponse.getSummary().isBlank()) {
+      throw new CustomException(AnalysisReportErrorCode.INVALID_REPORT_SUMMARY);
+    }
+    if (gptResponse.getSafetyDescription() == null
+        || gptResponse.getSafetyDescription().isBlank()) {
+      throw new CustomException(AnalysisReportErrorCode.INVALID_SAFETY_DESCRIPTION);
+    }
+    if (gptResponse.getInsuranceDescription() == null
+        || gptResponse.getInsuranceDescription().isBlank()) {
+      throw new CustomException(AnalysisReportErrorCode.INVALID_INSURANCE_DESCRIPTION);
     }
 
-    @Transactional
-    public Boolean deleteReport(Long reportId) { // 우선 사용X
-        log.info("분석 리포트 삭제 요청: reportId={}", reportId);
+    // 분석 상태 수정 -> 위험도 분석 중
+    AnalysisReport analysisReport =
+        analysisReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
 
-        try {
-            // FileService의 공통 삭제 메서드 활용
-            Boolean result = fileService.deleteFile(reportId, analysisReportRepository);
+    analysisReport.updateProcessingStatus(ProcessingStatus.ANALYZING);
 
-            log.info("등기부등본 삭제 완료: reportId={}, result={}", reportId, result);
-            return result;
-
-        } catch (Exception e) {
-            log.error("등기부등본 삭제 실패: reportId={}", reportId, e);
-            throw new CustomException(AnalysisReportErrorCode.FILE_SERVER_ERROR);
-        }
+    Double safetyScore = gptSecRequest.getSafetyScore();
+    if (safetyScore >= 7) {
+      analysisReport.updateComment(Comment.SAFE);
+    } else if (safetyScore >= 3) {
+      analysisReport.updateComment(Comment.CAUTION);
+    } else {
+      analysisReport.updateComment(Comment.DANGER);
     }
 
-    public MyPageResponse getAllMyPageReport(Long userId) { // 응답 추후 필드 수정
+    Long fixedUserId = 1L;
+    Warning warning = Warning.DEFAULT;
+    User user =
+        userRepository
+            .findById(fixedUserId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.USER_NOT_FOUND));
 
-        User user =
-                userRepository
-                        .findById(userId)
-                        .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
-
-        List<AnalysisReport> reports = analysisReportRepository.findAllByUserUserId(userId);
-
-        List<MyPageAnalysisResponse> analysisResponses =
-                reports.stream()
-                        .map(
-                                report ->
-                                        MyPageAnalysisResponse.builder()
-                                                .reportId(report.getReportId())
-                                                .address(report.getAddress())
-                                                .safetyScore(report.getSafetyScore())
-                                                .summary(report.getSummary())
-                                                .comment(report.getComment())
-                                                .build())
-                        .toList();
-
-        return MyPageResponse.builder()
-                .credit(user.getCredit()) // 해당 사용자의 크레딧
-                .postCount(user.getPostCount())
-                .reports(analysisResponses) // 해당 사용자의 분석 리포트 리스트
-                .build();
+    boolean warn =
+        fakerRepository.existsByFakerNameAndResidentNum(
+            gptResponse.getOwnerName(), gptResponse.getResidentNum());
+    if (user.getPayStatus() == PAID && warn) {
+      warning = Warning.WARN;
     }
 
-    public MyPageAnalysisResponse getAnalysisReport(Long reportId) {
+    // 분석결과로 분석리포트 수정
+    analysisReport.update(
+        gptResponse.getAddress(),
+        gptResponse.getSummary(),
+        gptResponse.getSafetyDescription(),
+        gptResponse.getInsuranceDescription(),
+        warning);
 
-        AnalysisReport report =
-                analysisReportRepository
-                        .findById(reportId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
+    // 분석 상태 수정 -> 모든 처리 완료
+    analysisReport.updateProcessingStatus(ProcessingStatus.COMPLETED);
 
-        return MyPageAnalysisResponse.builder()
-                .reportId(report.getReportId())
-                .analysisReportUrl(amazonS3.getUrl(s3Config.getBucket(), report.getS3Key()).toString())
-                .comment(report.getComment())
-                .safetyScore(report.getSafetyScore())
-                .address(report.getAddress())
-                .summary(report.getSummary())
-                .safetyDescription(report.getSafetyDescription())
-                .insuranceDescription(report.getInsuranceDescription())
-                .warning(report.getWarning())
-                .build();
+    // 이거 로그 메세지 바꿀게. 수정한다고 하니까 헷갈림
+    log.info("[AnalysisReportService] 분석리포트 결과 업데이트 완료 : reportId={}", reportId);
+
+    return toAnalysisReportResponse(analysisReport);
+  }
+
+  private Integer parseInteger(String value) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new NumberFormatException("빈 값은 파싱할 수 없습니다: " + value);
     }
 
-    // 전월세 안전지수 로직 + 완전한 분석 리포트 반환 메소드 -> gptResponse 응답을 파싱해서 DB에 집어넣어야 함
-    @Transactional
-    public AnalysisReportResponse updateAnalysisReport(
-            GptResponse gptResponse, GptSecRequest gptSecRequest, Long reportId) {
+    try {
+      // 숫자가 아닌 모든 문자 제거 (원, 쉼표, 공백 등)
+      String numericOnly = value.replaceAll("[^0-9]", "");
 
-        log.info("[AnalysisReportService] 분석리포트 결과 업데이트 시도 : reportId={}", reportId);
-        if (gptResponse.getAddress() == null || gptResponse.getAddress().isBlank()) {
-            throw new CustomException(AnalysisReportErrorCode.INVALID_REPORT_ADDRESS);
-        }
-        if (gptResponse.getSummary() == null || gptResponse.getSummary().isBlank()) {
-            throw new CustomException(AnalysisReportErrorCode.INVALID_REPORT_SUMMARY);
-        }
-        if (gptResponse.getSafetyDescription() == null
-                || gptResponse.getSafetyDescription().isBlank()) {
-            throw new CustomException(AnalysisReportErrorCode.INVALID_SAFETY_DESCRIPTION);
-        }
-        if (gptResponse.getInsuranceDescription() == null
-                || gptResponse.getInsuranceDescription().isBlank()) {
-            throw new CustomException(AnalysisReportErrorCode.INVALID_INSURANCE_DESCRIPTION);
-        }
+      if (numericOnly.isEmpty()) {
+        throw new NumberFormatException("숫자를 찾을 수 없습니다: " + value);
+      }
 
-        // 분석 상태 수정 -> 위험도 분석 중
-        AnalysisReport analysisReport =
-                analysisReportRepository
-                        .findById(reportId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
+      return Integer.valueOf(numericOnly);
 
-        analysisReport.updateProcessingStatus(ProcessingStatus.ANALYZING);
-
-        Double safetyScore = gptSecRequest.getSafetyScore();
-        if (safetyScore >= 7) {
-            analysisReport.updateComment(Comment.SAFE);
-        } else if (safetyScore >= 3) {
-            analysisReport.updateComment(Comment.CAUTION);
-        } else {
-            analysisReport.updateComment(Comment.DANGER);
-        }
-
-        Long fixedUserId = 1L;
-        Warning warning = Warning.DEFAULT;
-        User user =
-                userRepository
-                        .findById(fixedUserId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.USER_NOT_FOUND));
-
-        boolean warn =
-                fakerRepository.existsByFakerNameAndResidentNum(
-                        gptResponse.getOwnerName(), gptResponse.getResidentNum());
-        if (user.getPayStatus() == PAID && warn) {
-            warning = Warning.WARN;
-        }
-
-        // 분석결과로 분석리포트 수정
-        analysisReport.update(
-                gptResponse.getAddress(),
-                gptResponse.getSummary(),
-                gptResponse.getSafetyDescription(),
-                gptResponse.getInsuranceDescription(),
-                warning);
-
-        // 분석 상태 수정 -> 모든 처리 완료
-        analysisReport.updateProcessingStatus(ProcessingStatus.COMPLETED);
-
-        // 이거 로그 메세지 바꿀게. 수정한다고 하니까 헷갈림
-        log.info("[AnalysisReportService] 분석리포트 결과 업데이트 완료 : reportId={}", reportId);
-
-        return toAnalysisReportResponse(analysisReport);
+    } catch (NumberFormatException e) {
+      log.error("숫자 파싱 실패: {}", value, e);
+      throw new NumberFormatException("숫자 파싱 실패: " + value);
     }
+  }
 
-    private Integer parseInteger(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new NumberFormatException("빈 값은 파싱할 수 없습니다: " + value);
-        }
+  public AnalysisReportResponse toAnalysisReportResponse(AnalysisReport analysisReport) {
 
-        try {
-            // 숫자가 아닌 모든 문자 제거 (원, 쉼표, 공백 등)
-            String numericOnly = value.replaceAll("[^0-9]", "");
+    return AnalysisReportResponse.builder()
+        .reportId(analysisReport.getReportId())
+        .processingStatus(analysisReport.getProcessingStatus())
+        .build();
+  }
 
-            if (numericOnly.isEmpty()) {
-                throw new NumberFormatException("숫자를 찾을 수 없습니다: " + value);
-            }
+  // plus 요금제를 사용하는 사용자라면, 신고당한 이력이 있는 임대인인지 확인하는 메소드
+  public Boolean isWarning(GptResponse gptResponse) {
 
-            return Integer.valueOf(numericOnly);
+    Long fixedUserId = 1L;
+    User user =
+        userRepository
+            .findById(fixedUserId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.USER_NOT_FOUND));
 
-        } catch (NumberFormatException e) {
-            log.error("숫자 파싱 실패: {}", value, e);
-            throw new NumberFormatException("숫자 파싱 실패: " + value);
-        }
+    boolean warn =
+        fakerRepository.existsByFakerNameAndResidentNum(
+            gptResponse.getOwnerName(), gptResponse.getResidentNum());
+    if (user.getPayStatus() == PAID || warn) {
+      return true;
     }
+    return false;
+  }
 
-    public AnalysisReportResponse toAnalysisReportResponse(AnalysisReport analysisReport) {
+  // 근저당 총액을 가지고 해당 거래가 전세 or 월세 인지에 따라 gpt에게 넘기는 값을 반환하는 메소드
+  @Transactional
+  public GptSecRequest getGptSecRequest(
+      GptAnalysisRequest gptAnalysisRequest, GptDeptResponse gptDeptResponse, Long reportId) {
 
-        return AnalysisReportResponse.builder()
-                .reportId(analysisReport.getReportId())
-                .processingStatus(analysisReport.getProcessingStatus())
-                .build();
-    }
+    SafetyScoreCalculator safetyScoreCalculator =
+        new SafetyScoreCalculator(gptAnalysisRequest, gptDeptResponse);
 
-    // plus 요금제를 사용하는 사용자라면, 신고당한 이력이 있는 임대인인지 확인하는 메소드
-    public Boolean isWarning(GptResponse gptResponse) {
+    int dangerNum = safetyScoreCalculator.calculateDangerNum();
+    int officialPrice = safetyScoreCalculator.calculateOfficialPrice();
 
-        Long fixedUserId = 1L;
-        User user =
-                userRepository
-                        .findById(fixedUserId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.USER_NOT_FOUND));
+    InsuranceScoreCalculator insuranceScoreCalculator =
+        new InsuranceScoreCalculator(gptAnalysisRequest, gptDeptResponse, dangerNum, officialPrice);
 
-        boolean warn =
-                fakerRepository.existsByFakerNameAndResidentNum(
-                        gptResponse.getOwnerName(), gptResponse.getResidentNum());
-        if (user.getPayStatus() == PAID || warn) {
-            return true;
-        }
-        return false;
-    }
+    Double safetyScore = safetyScoreCalculator.calculateSafetyScore();
+    String safetyScoreStatus = safetyScoreCalculator.calculateSafetyScoreStatus(safetyScore);
+    Integer insuranceData = insuranceScoreCalculator.calculateInsuranceScore();
 
-    // 근저당 총액을 가지고 해당 거래가 전세 or 월세 인지에 따라 gpt에게 넘기는 값을 반환하는 메소드
-    @Transactional
-    public GptSecRequest getGptSecRequest(
-            GptAnalysisRequest gptAnalysisRequest, GptDeptResponse gptDeptResponse, Long reportId) {
+    // 분석 상태 수정 -> 위험도 분석 중
+    AnalysisReport analysisReport =
+        analysisReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
 
-        SafetyScoreCalculator safetyScoreCalculator = new SafetyScoreCalculator(gptAnalysisRequest, gptDeptResponse);
+    analysisReport.updateProcessingStatus(ProcessingStatus.ANALYZING);
 
-        int dangerNum = safetyScoreCalculator.calculateDangerNum();
-        int officialPrice = safetyScoreCalculator.calculateOfficialPrice();
+    analysisReport.updateSafetyScore(safetyScore); // DB에 안전점수 저장
 
-        InsuranceScoreCalculator insuranceScoreCalculator = new InsuranceScoreCalculator(gptAnalysisRequest, gptDeptResponse, dangerNum, officialPrice);
-
-        Double safetyScore = safetyScoreCalculator.calculateSafetyScore();
-        String safetyScoreStatus = safetyScoreCalculator.calculateSafetyScoreStatus(safetyScore);
-        Integer insuranceData = insuranceScoreCalculator.calculateInsuranceScore();
-
-        // 분석 상태 수정 -> 위험도 분석 중
-        AnalysisReport analysisReport =
-                analysisReportRepository
-                        .findById(reportId)
-                        .orElseThrow(() -> new CustomException(AnalysisReportErrorCode.REPORT_NOT_FOUND));
-
-        analysisReport.updateProcessingStatus(ProcessingStatus.ANALYZING);
-
-        analysisReport.updateSafetyScore(safetyScore); // DB에 안전점수 저장
-
-        return GptSecRequest.builder()
-                .safetyScore(safetyScore)
-                .safetyScoreStatus(safetyScoreStatus)
-                .insuranceData(insuranceData)
-                .build();
-    }
+    return GptSecRequest.builder()
+        .safetyScore(safetyScore)
+        .safetyScoreStatus(safetyScoreStatus)
+        .insuranceData(insuranceData)
+        .build();
+  }
 }
