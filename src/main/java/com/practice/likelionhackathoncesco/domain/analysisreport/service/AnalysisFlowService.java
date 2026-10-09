@@ -81,8 +81,6 @@ public class AnalysisFlowService {
         GptSecRequest gptSecRequest =
                 analysisReportService.getGptSecRequest(gptAnalysisRequest, gptDeptResponse, reportId);
 
-        System.out.println(gptSecRequest.getSafetyScoreStatus());
-
         // gpt에게 필요한 정보 추가해서 최종 프롬프트 생성
         try {
             prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, reportId);
