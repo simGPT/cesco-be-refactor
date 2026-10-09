@@ -52,23 +52,27 @@ public class AnalysisFlowService {
     public AnalysisReportResponse processAnalysisReport(
             Long reportId, GptAnalysisRequest gptAnalysisRequest) {
 
-        // 프롬프트 제작
+        long start;
         List<Map<String, String>> promptsForDept; // 근저당 프롬프트
         List<Map<String, String>> prompts; // 분석레포트 프롬프트
 
-        // 근저당 총액을 알아내기 위한 프롬프트
+        // 1. 근저당 총액을 알아내기 위한 프롬프트 생성(Naver OCR 호출)
+        start = System.currentTimeMillis();
         try {
             promptsForDept = gptService.createPromptForDept(gptAnalysisRequest, reportId);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             promptsForDept = new ArrayList<>();
         }
+        log.info("[성능] OCR 호출 소요 시간: {}ms", System.currentTimeMillis() - start);
 
         // 지피티 작업 중으로 상태 업데이트 for 프론트
         analysisReportService.updateProcessingStatus(reportId, ProcessingStatus.GPT_PROCESSING);
 
-        // gpt-4o api 호출로 근저당 총액 응답 받기
+        // 2. gpt-4o api 1차 호출로 근저당 총액 응답 받기
+        start = System.currentTimeMillis();
         String contentForDept = gptApiClient.callGptAPI(promptsForDept, String.valueOf(reportId));
+        log.info("[성능] GPT 1차 호출 소요 시간: {}ms", System.currentTimeMillis() - start);
 
         // 근저당 총액 gpt 응답을 파싱하는 메소드
         GptDeptResponse gptDeptResponse = gptService.parseDeptResponse(contentForDept);
@@ -77,27 +81,33 @@ public class AnalysisFlowService {
                 gptDeptResponse.getDept(),
                 gptDeptResponse.getDangerNum());
 
-        // gpt 에게 전달할 값 세개
+        // 3. 자체 알고리즘으로 안전지수 도출 (gpt 에게 전달할 값 세개)
         GptSecRequest gptSecRequest =
                 analysisReportService.getGptSecRequest(gptAnalysisRequest, gptDeptResponse, reportId);
 
-        // gpt에게 필요한 정보 추가해서 최종 프롬프트 생성
+        // 4. gpt에게 필요한 정보 추가해서 최종 프롬프트 생성(Naver OCR 호출)
+        start = System.currentTimeMillis();
         try {
             prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, reportId);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             prompts = new ArrayList<>();
         }
+        log.info("[성능] OCR 호출(2차) 소요 시간: {}ms", System.currentTimeMillis() - start);
 
-        // gpt-4o api 호출
+        // 5. gpt-4o api 2차 호출
+        start = System.currentTimeMillis();
         String content = gptApiClient.callGptAPI(prompts, String.valueOf(reportId));
+        log.info("[성능] GPT 2차 호출 소요 시간: {}ms", System.currentTimeMillis() - start);
 
         // 응답 파싱
         GptResponse gptResponse = gptService.parseGptResponse(content);
 
-        // 분석 리포트 분석 후 DB 업데이트
+        // 6. 분석 리포트 분석 후 DB 업데이트
+        start = System.currentTimeMillis();
         AnalysisReportResponse analysisReportResponse =
                 analysisReportService.updateAnalysisReport(gptResponse, gptSecRequest, reportId);
+        log.info("[성능] DB 저장 소요 시간: {}ms", System.currentTimeMillis() - start);
 
         return analysisReportResponse;
     }
