@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.practice.likelionhackathoncesco.global.exception.CustomException;
 import com.practice.likelionhackathoncesco.infra.naverocr.dto.response.OcrResponse;
-import com.practice.likelionhackathoncesco.infra.naverocr.service.NaverOcrService;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptAnalysisRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptSecRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptDeptResponse;
@@ -24,11 +23,11 @@ import org.springframework.stereotype.Service;
 public class GptService {
 
   private final ObjectMapper objectMapper;
-  private final NaverOcrService naverOcrService;
 
   // 근저당 총액을 알아내기 위한 프롬프트 생성 메소드
   public List<Map<String, String>> createPromptForDept(
-      GptAnalysisRequest gptAnalysisRequest, Long reportId) throws JsonProcessingException {
+      GptAnalysisRequest gptAnalysisRequest, OcrResponse ocrResponse)
+      throws JsonProcessingException {
 
     Integer officalPrice = 340000000;
 
@@ -40,8 +39,6 @@ public class GptService {
       officalPrice = 150000000;
     }
 
-    // ocr로 추출한 택스트 바로 가져오기
-    OcrResponse ocrResponse = naverOcrService.extractText(reportId);
     Map<String, List<String>> text = ocrResponse.getSections();
     ObjectMapper objectMapper = new ObjectMapper();
     String jsonText = objectMapper.writeValueAsString(text);
@@ -132,11 +129,9 @@ public class GptService {
 
   // 프롬프트 생성 메소드
   public List<Map<String, String>> createPrompt(
-      GptAnalysisRequest gptAnalysisRequest, GptSecRequest gptSecRequest, Long reportId)
+      GptAnalysisRequest gptAnalysisRequest, GptSecRequest gptSecRequest, OcrResponse ocrResponse)
       throws JsonProcessingException {
 
-    // ocr로 추출한 택스트 바로 가져오기
-    OcrResponse ocrResponse = naverOcrService.extractText(reportId);
     Map<String, List<String>> text = ocrResponse.getSections();
     ObjectMapper objectMapper = new ObjectMapper();
     String jsonText = objectMapper.writeValueAsString(text);

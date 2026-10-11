@@ -7,6 +7,8 @@ import com.practice.likelionhackathoncesco.domain.analysisreport.entity.PathName
 import com.practice.likelionhackathoncesco.domain.analysisreport.entity.ProcessingStatus;
 import com.practice.likelionhackathoncesco.domain.analysisreport.repository.AnalysisReportRepository;
 import com.practice.likelionhackathoncesco.domain.commonfile.service.FileService;
+import com.practice.likelionhackathoncesco.infra.naverocr.dto.response.OcrResponse;
+import com.practice.likelionhackathoncesco.infra.naverocr.service.NaverOcrService;
 import com.practice.likelionhackathoncesco.infra.openai.client.GptApiClient;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptAnalysisRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptSecRequest;
@@ -33,6 +35,7 @@ public class AnalysisFlowService {
   private final FileService fileService;
   private final AnalysisReportRepository analysisReportRepository;
   private final GptApiClient gptApiClient;
+  private final NaverOcrService naverOcrService;
 
   // 분석 리포트를 위한 등기부등본 S3 업로드 + DB 저장
   @Transactional
@@ -56,15 +59,18 @@ public class AnalysisFlowService {
     List<Map<String, String>> promptsForDept; // 근저당 프롬프트
     List<Map<String, String>> prompts; // 분석레포트 프롬프트
 
-    // 1. 근저당 총액을 알아내기 위한 프롬프트 생성(Naver OCR 호출)
-    stopWatch.start("OCR 1차 호출");
+    // 1. Naver OCR 호출 (1회만 호출 후 재사용)
+    stopWatch.start("OCR 호출");
+    OcrResponse ocrResponse = naverOcrService.extractText(reportId);
+    stopWatch.stop();
+
+    // 근저당 총액을 알아내기 위한 프롬프트 생성
     try {
-      promptsForDept = gptService.createPromptForDept(gptAnalysisRequest, reportId);
+      promptsForDept = gptService.createPromptForDept(gptAnalysisRequest, ocrResponse);
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       promptsForDept = new ArrayList<>();
     }
-    stopWatch.stop();
 
     // 지피티 작업 중으로 상태 업데이트 for 프론트
     analysisReportService.updateProcessingStatus(reportId, ProcessingStatus.GPT_PROCESSING);
@@ -85,15 +91,13 @@ public class AnalysisFlowService {
     GptSecRequest gptSecRequest =
         analysisReportService.getGptSecRequest(gptAnalysisRequest, gptDeptResponse, reportId);
 
-    // 4. gpt에게 필요한 정보 추가해서 최종 프롬프트 생성(Naver OCR 호출)
-    stopWatch.start("OCR 2차 호출");
+    // 4. gpt에게 필요한 정보 추가해서 최종 프롬프트 생성 (OCR 결과 재사용)
     try {
-      prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, reportId);
+      prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, ocrResponse);
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       prompts = new ArrayList<>();
     }
-    stopWatch.stop();
 
     // 5. gpt-4o api 2차 호출
     stopWatch.start("GPT 2차 호출");
