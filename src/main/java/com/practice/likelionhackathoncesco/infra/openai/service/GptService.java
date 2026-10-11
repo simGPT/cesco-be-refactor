@@ -26,7 +26,8 @@ public class GptService {
 
   // 근저당 총액을 알아내기 위한 프롬프트 생성 메소드
   public List<Map<String, String>> createPromptForDept(
-      GptAnalysisRequest gptAnalysisRequest, OcrResponse ocrResponse) throws JsonProcessingException {
+      GptAnalysisRequest gptAnalysisRequest, OcrResponse ocrResponse)
+      throws JsonProcessingException {
 
     Integer officalPrice = 340000000;
 
