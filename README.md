@@ -26,29 +26,34 @@
 ## ✍️ 프로젝트 소개
 
 <div align="left">
-<img src="./asset/7조 중앙해커톤-이미지-0.jpg" style="border-radius: 10px; width: 700px;"/>
-<img src="./asset/7조 중앙해커톤-이미지-1.jpg" style="border-radius: 10px; width: 700px;"/>
-<img src="./asset/7조 중앙해커톤-이미지-2.jpg" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/546d3b66-fd15-4fc2-9965-1aa6990e51e0" />
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/8a748c47-fbe0-4d43-9dee-94396b1e74eb" />
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/54d31355-a40a-4c58-a75e-f27d9b634eee" />
 </div>
 
 ## 📌 주요 기능
 
 <div align="left">
-<img src="./asset/7조 중앙해커톤-이미지-3.jpg" style="border-radius: 10px; width: 700px;"/>
-<img src="./asset/7조 중앙해커톤-이미지-4.jpg" style="border-radius: 10px; width: 700px;"/>
-<img src="./asset/7조 중앙해커톤-이미지-5.jpg" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/391617a1-128e-41a1-b966-a7a23e160f87" />
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/eb0122f8-5c98-40a4-bdba-ff8c50846e81" />
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/19698c54-8f82-4c99-99c9-312ae66a5132" />
+
 </div>
 
 ## 💡 서비스 차별점
 
 <div align="left">
-<img src="./asset/7조 중앙해커톤-이미지-6.jpg" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/8ba2cca2-f903-42e8-a423-89a03bb3b6d1" />
+
 </div>
 
 ## 💸 수익구조
 
 <div align="left">
-<img src="./asset/7조 중앙해커톤-이미지-7.jpg" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/a1cbe408-9fd1-47dc-b225-54cb4c7ae9ad" />
+
 </div>
 
 <br></br>
@@ -141,7 +146,8 @@
 ## 🚀 System Architecture
 
 <div align="left">
-<img src="./asset/아키텍처 구조.png" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/ef06564a-ce5c-4d6a-b2a1-f8889e955db0" />
+
 </div>
 
 <br></br>
@@ -149,7 +155,8 @@
 ## 🔥 프로젝트를 준비하며
 
 <div align="left">
-<img src="./asset/프로젝트를 준비하며.png" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/9415805c-bb5c-4c68-a89d-4bbcaffce36f" />
+
 </div>
 
 <br></br>
@@ -157,7 +164,8 @@
 ## 😁 팀원들의 한마디
 
 <div align="left">
-<img src="./asset/팀원들의한마디.png" style="border-radius: 10px; width: 700px;"/>
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/aec70e6f-f670-461a-b37e-40c119de8a4a" />
+
 </div>
 <hr>
 
