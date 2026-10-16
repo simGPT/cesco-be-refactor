@@ -86,7 +86,7 @@ public class PostService {
         post.getRoadCode(),
         post.getBuildingNumber());
 
-    return postMapper.toPostResponse(post, post.getLikeCount(), 0L);
+    return postMapper.toPostResponse(post, post.getLikeCount(), 0L, false);
   }
 
   // 게시글 삭제 - 댓글 좋아요 같이 삭제 되야함 ^^^^^^^^^^^^^^^^^
@@ -128,7 +128,7 @@ public class PostService {
 
     log.info("[PostService] 게시글 수정 완료 : postId={}, content = {}", postId, post.getContent());
 
-    return postMapper.toPostResponse(post, post.getLikeCount(), commentCount);
+    return postMapper.toPostResponse(post, post.getLikeCount(), commentCount, false);
   }
 
   // 게시글 단일 조회 기능
@@ -147,7 +147,7 @@ public class PostService {
 
     boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
 
-    return postMapper.toGetPostResponse(post, post.getLikeCount(), commentCount, likedByUser);
+    return postMapper.toPostResponse(post, post.getLikeCount(), commentCount, likedByUser);
   }
 
   // (도로명코드+건물본번) 별 게시글 전체 조회 기능
@@ -167,7 +167,7 @@ public class PostService {
             post -> {
               long commentCount = commentRepository.countByPostPostId(post.getPostId());
               boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toGetPostResponse(
+              return postMapper.toPostResponse(
                   post, post.getLikeCount(), commentCount, likedByUser);
             })
         .toList();
@@ -187,7 +187,7 @@ public class PostService {
             post -> {
               long commentCount = commentRepository.countByPostPostId(post.getPostId());
               boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toGetPostResponse(
+              return postMapper.toPostResponse(
                   post, post.getLikeCount(), commentCount, likedByUser);
             })
         .toList();
@@ -208,7 +208,7 @@ public class PostService {
             post -> {
               long commentCount = commentRepository.countByPostPostId(post.getPostId());
               boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toGetPostResponse(
+              return postMapper.toPostResponse(
                   post, post.getLikeCount(), commentCount, likedByUser);
             })
         .toList();
