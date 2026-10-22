@@ -14,6 +14,9 @@ import com.practice.likelionhackathoncesco.domain.user.exception.UserErrorCode;
 import com.practice.likelionhackathoncesco.domain.user.repository.UserRepository;
 import com.practice.likelionhackathoncesco.global.exception.CustomException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -151,30 +154,45 @@ public class PostService {
   }
 
   // (도로명코드+건물본번) 별 게시글 전체 조회 기능
-  @Transactional
+  @Transactional(readOnly = true)
   public List<PostResponse> getAllPostsByRoadCodeAndBuildingNumber(
       String roadCode, String buildingNumber) {
     log.info("[PostService] (도로명코드+건물본번) 별 게시글 전체 조회 시도");
     List<Post> postList =
         postRepository.findAllByRoadCodeAndBuildingNumber(roadCode, buildingNumber);
 
-    if (postList == null || postList.isEmpty()) {
-      throw new CustomException(PostErrorCode.POST_NOT_FOUND);
+    if (postList.isEmpty()) {
+      return List.of();
     }
     Long userId = 1L;
+
+    // (도로명코드+건물본번) 별 게시글 아이디 목록
+    List<Long> postIdList = postList.stream().map(Post::getPostId).toList();
+
+    // (게시글 아이디) 별 댓글 수 매핑
+    Map<Long, Long> commentCountMap =
+        commentRepository.countByPostIdList(postIdList).stream()
+            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+
+    // (사용자+게시글 아이디) 별 좋아요 여부 조회
+    Set<Long> likedPostList =
+        likeRepository.findAllByUserUserIdAndPostPostIdIn(1L, postIdList).stream()
+            .map(like -> like.getPost().getPostId())
+            .collect(Collectors.toSet());
+
     return postList.stream()
         .map(
-            post -> {
-              long commentCount = commentRepository.countByPostPostId(post.getPostId());
-              boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toPostResponse(
-                  post, post.getLikeCount(), commentCount, likedByUser);
-            })
-        .toList();
+            post ->
+                postMapper.toPostResponse(
+                    post,
+                    post.getLikeCount(),
+                    commentCountMap.getOrDefault(post.getPostId(), 0L),
+                    likedPostList.contains(post.getPostId())))
+        .collect(Collectors.toList());
   }
 
   // (도로명코드+건물본번) 별 게시글 최신순 조회 기능
-  @Transactional
+  @Transactional(readOnly = true)
   public List<PostResponse> getAllPostsByRoadCodeAndBuildingNumberAndCreatedAtDesc(
       String roadCode, String buildingNumber) {
     log.info("[PostService] (도로명코드+건물본번) 별 게시글 최신순 조회 시도");
@@ -194,7 +212,7 @@ public class PostService {
   }
 
   // (도로명코드+건물본번) 별 게시글 인기순 조회 기능
-  @Transactional
+  @Transactional(readOnly = true)
   public List<PostResponse> getAllPostsByRoadCodeBuildingNumberAndLikeCountDesc(
       String roadCode, String buildingNumber) {
     log.info("[PostService] (도로명코드+건물본번) 별 게시글 인기순 조회 시도");
