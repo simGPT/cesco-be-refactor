@@ -4,30 +4,17 @@ import com.practice.likelionhackathoncesco.domain.analysisreport.entity.Analysis
 import com.practice.likelionhackathoncesco.domain.fraudreport.entity.ComplaintReport;
 import com.practice.likelionhackathoncesco.domain.fraudreport.entity.FraudRegisterReport;
 import com.practice.likelionhackathoncesco.global.common.BaseTimeEntity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 외부 객체 생성 방지하기 위한 접근제어자 설정
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(name = "users")
 public class User extends BaseTimeEntity {
 
@@ -38,8 +25,9 @@ public class User extends BaseTimeEntity {
   @Column(name = "username")
   private String username; // 사용자 이름 -> cesco 고정(스프링 실행 시 생성)
 
-  @Column(name = "credit")
-  private Integer credit; // 사용자 크레딧
+  @Column(name = "credit", nullable = false)
+  @Builder.Default
+  private Integer credit = 0; // 사용자 크레딧
 
   @Column(name = "expiration_date")
   private LocalDateTime expirationDate; // 결제상태가 PAID일때 결제 만료일
@@ -60,10 +48,12 @@ public class User extends BaseTimeEntity {
 
   // FraudReport 테이블의 user 필드와 연관 -> user는 FraudReport를 여러개 가짐
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<FraudRegisterReport> fraudRegisterReports = new ArrayList<>();
 
   // ComplaintReport 테이블의 user 필드와 연관 -> user는 ComplaintReport를 여러개 가짐
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<ComplaintReport> complaintReport = new ArrayList<>();
 
   // 결제 상태를 PAID로 바꾸고 결제 만료일을 한달 뒤로 저장

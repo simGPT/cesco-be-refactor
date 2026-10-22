@@ -177,4 +177,18 @@ public class FileService {
       throw new CustomException(AnalysisReportErrorCode.FILE_SERVER_ERROR);
     }
   }
+
+  // S3 테스트용 메소드: 업로드 되면 S3 key 반환
+  @Transactional
+  public String s3UploadTest(String testPath, MultipartFile file) {
+
+    validateFile(file); // 파일 유효성 검사
+    String uuid = UUID.randomUUID().toString();
+    String fileExtension = getFileExtension(file.getOriginalFilename());
+
+    String keyName = testPath + "/" + uuid + fileExtension;
+
+    uploadToS3(file, keyName);
+    return keyName;
+  }
 }

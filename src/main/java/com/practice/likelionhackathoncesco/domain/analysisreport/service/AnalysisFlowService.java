@@ -7,6 +7,9 @@ import com.practice.likelionhackathoncesco.domain.analysisreport.entity.PathName
 import com.practice.likelionhackathoncesco.domain.analysisreport.entity.ProcessingStatus;
 import com.practice.likelionhackathoncesco.domain.analysisreport.repository.AnalysisReportRepository;
 import com.practice.likelionhackathoncesco.domain.commonfile.service.FileService;
+import com.practice.likelionhackathoncesco.infra.naverocr.dto.response.OcrResponse;
+import com.practice.likelionhackathoncesco.infra.naverocr.service.NaverOcrService;
+import com.practice.likelionhackathoncesco.infra.openai.client.GptApiClient;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptAnalysisRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.request.GptSecRequest;
 import com.practice.likelionhackathoncesco.infra.openai.dto.response.GptDeptResponse;
@@ -19,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -30,6 +34,8 @@ public class AnalysisFlowService {
   private final AnalysisReportService analysisReportService;
   private final FileService fileService;
   private final AnalysisReportRepository analysisReportRepository;
+  private final GptApiClient gptApiClient;
+  private final NaverOcrService naverOcrService;
 
   // 분석 리포트를 위한 등기부등본 S3 업로드 + DB 저장
   @Transactional
@@ -49,20 +55,30 @@ public class AnalysisFlowService {
   public AnalysisReportResponse processAnalysisReport(
       Long reportId, GptAnalysisRequest gptAnalysisRequest) {
 
-    // 프롬프트 제작
+    StopWatch stopWatch = new StopWatch("분석 API 구간별 소요 시간");
     List<Map<String, String>> promptsForDept; // 근저당 프롬프트
     List<Map<String, String>> prompts; // 분석레포트 프롬프트
 
-    // 근저당 총액을 알아내기 위한 프롬프트
+    // 1. Naver OCR 호출 (1회만 호출 후 재사용)
+    stopWatch.start("OCR 호출");
+    OcrResponse ocrResponse = naverOcrService.extractText(reportId);
+    stopWatch.stop();
+
+    // 근저당 총액을 알아내기 위한 프롬프트 생성
     try {
-      promptsForDept = gptService.createPromptForDept(gptAnalysisRequest, reportId);
+      promptsForDept = gptService.createPromptForDept(gptAnalysisRequest, ocrResponse);
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       promptsForDept = new ArrayList<>();
     }
 
-    // gpt-4o api 호출로 근저당 총액 응답 받기
-    String contentForDept = gptService.callGptAPI(promptsForDept, String.valueOf(reportId));
+    // 지피티 작업 중으로 상태 업데이트 for 프론트
+    analysisReportService.updateProcessingStatus(reportId, ProcessingStatus.GPT_PROCESSING);
+
+    // 2. gpt-4o api 1차 호출로 근저당 총액 응답 받기
+    stopWatch.start("GPT 1차 호출");
+    String contentForDept = gptApiClient.callGptAPI(promptsForDept, String.valueOf(reportId));
+    stopWatch.stop();
 
     // 근저당 총액 gpt 응답을 파싱하는 메소드
     GptDeptResponse gptDeptResponse = gptService.parseDeptResponse(contentForDept);
@@ -71,29 +87,33 @@ public class AnalysisFlowService {
         gptDeptResponse.getDept(),
         gptDeptResponse.getDangerNum());
 
-    // gpt 에게 전달할 값 세개
+    // 3. 자체 알고리즘으로 안전지수 도출 (gpt 에게 전달할 값 세개)
     GptSecRequest gptSecRequest =
         analysisReportService.getGptSecRequest(gptAnalysisRequest, gptDeptResponse, reportId);
 
-    System.out.println(gptSecRequest.getSafetyScoreStatus());
-
-    // gpt에게 필요한 정보 추가해서 최종 프롬프트 생성
+    // 4. gpt에게 필요한 정보 추가해서 최종 프롬프트 생성 (OCR 결과 재사용)
     try {
-      prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, reportId);
+      prompts = gptService.createPrompt(gptAnalysisRequest, gptSecRequest, ocrResponse);
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       prompts = new ArrayList<>();
     }
 
-    // gpt-4o api 호출
-    String content = gptService.callGptAPI(prompts, String.valueOf(reportId));
+    // 5. gpt-4o api 2차 호출
+    stopWatch.start("GPT 2차 호출");
+    String content = gptApiClient.callGptAPI(prompts, String.valueOf(reportId));
+    stopWatch.stop();
 
     // 응답 파싱
     GptResponse gptResponse = gptService.parseGptResponse(content);
 
-    // 분석 리포트 분석 후 DB 업데이트
+    // 6. 분석 리포트 분석 후 DB 업데이트
+    stopWatch.start("DB 저장");
     AnalysisReportResponse analysisReportResponse =
         analysisReportService.updateAnalysisReport(gptResponse, gptSecRequest, reportId);
+    stopWatch.stop();
+
+    log.info("[성능] {}", stopWatch.prettyPrint());
 
     return analysisReportResponse;
   }

@@ -33,6 +33,7 @@ public class FraudOcrService {
   private final NaverOcrConfig naverOcrConfig; // API InvokeUrl, seceretKey
 
   private final NaverOcrService naverOcrService;
+  private final OcrResponseParser ocrResponseParser;
 
   // ocr로 텍스트 추출 -> 신고할 등기부등본!!!!!!!!!! (텍스트로 반환)
   public List<String> gapguExtractText(Long reportId) {
@@ -106,7 +107,7 @@ public class FraudOcrService {
 
   private List<String> parseGapgu(ResponseEntity<String> response) throws IOException {
     // 기존 parseResponse 로직을 사용해서 전체 파싱
-    OcrResponse ocrResponse = naverOcrService.parseResponse(response); // 기존 메소드 재사용
+    OcrResponse ocrResponse = ocrResponseParser.parseResponse(response); // 기존 메소드 재사용
 
     // 갑구만 반환
     return ocrResponse.getSections().getOrDefault("갑구", new ArrayList<>());
