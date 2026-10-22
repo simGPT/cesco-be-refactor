@@ -82,13 +82,18 @@ class PostServiceQueryCountTest {
 
     // 쿼리 수 측정 및 기록
     long queryCount = stats.getPrepareStatementCount();
-    log.info(
-        "[쿼리 수 측정] 게시글 {}개 조회 시 실행된 쿼리 수: {}번 (예상: {}번)",
-        POST_COUNT,
-        queryCount,
-        1 + 2 * POST_COUNT);
+    log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
 
-    // 실제 쿼리 수가 2N+1이 맞는지 검증
-    assertThat(queryCount).isEqualTo(1 + 2L * POST_COUNT); // 1 + 2*3 = 7
+    //        log.info(
+    //                "[2N+1 문제 발생 시 쿼리 수 측정] 게시글 {}개 조회 시 실행된 쿼리 수: {}번 (예상: {}번)",
+    //                POST_COUNT,
+    //                queryCount,
+    //                1 + 2 * POST_COUNT);
+
+    // 리팩토링 후 실제 쿼리 수가 3이 맞는지 검증
+    assertThat(queryCount).isEqualTo(3);
+
+    // 실제 쿼리 수가 2N+1이 맞는지 검증(리팩토링 전 2N+1 문제 확인 용)
+    // assertThat(queryCount).isEqualTo(1 + 2L * POST_COUNT); // 1 + 2*3 = 7
   }
 }
