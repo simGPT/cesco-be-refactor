@@ -174,9 +174,9 @@ public class PostService {
         commentRepository.countByPostIdList(postIdList).stream()
             .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
 
-    // (사용자+게시글 아이디) 별 좋아요 여부 조회
+    // (사용자+게시글 아이디) 별 좋아요 존재 게시글 id 목록 반환
     Set<Long> likedPostList =
-        likeRepository.findAllByUserUserIdAndPostPostIdIn(1L, postIdList).stream()
+        likeRepository.findAllByUserUserIdAndPostPostIdIn(userId, postIdList).stream()
             .map(like -> like.getPost().getPostId())
             .collect(Collectors.toSet());
 
@@ -199,16 +199,33 @@ public class PostService {
     List<Post> postListCreatedAtDesc =
         postRepository.findAllByRoadCodeAndBuildingNumberOrderByCreatedAtDesc(
             roadCode, buildingNumber);
+
     Long userId = 1L;
+
+    // (도로명코드+건물본번) 최신순 게시글 아이디 목록
+    List<Long> postIdListCreatedAtDesc =
+        postListCreatedAtDesc.stream().map(Post::getPostId).toList();
+
+    // 최신순 게시글 아이디 목록 별 댓글 수 매핑
+    Map<Long, Long> commentCountMap =
+        commentRepository.countByPostIdList(postIdListCreatedAtDesc).stream()
+            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+
+    // (최신순 게시글 아이디 목록 + 사용자) 별 좋아요 존재 게시글 id 목록 반환
+    Set<Long> likedPostList =
+        likeRepository.findAllByUserUserIdAndPostPostIdIn(userId, postIdListCreatedAtDesc).stream()
+            .map(like -> like.getPost().getPostId())
+            .collect(Collectors.toSet());
+
     return postListCreatedAtDesc.stream()
         .map(
-            post -> {
-              long commentCount = commentRepository.countByPostPostId(post.getPostId());
-              boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toPostResponse(
-                  post, post.getLikeCount(), commentCount, likedByUser);
-            })
-        .toList();
+            post ->
+                postMapper.toPostResponse(
+                    post,
+                    post.getLikeCount(),
+                    commentCountMap.getOrDefault(post.getPostId(), 0L),
+                    likedPostList.contains(post.getPostId())))
+        .collect(Collectors.toList());
   }
 
   // (도로명코드+건물본번) 별 게시글 인기순 조회 기능
@@ -221,14 +238,29 @@ public class PostService {
             roadCode, buildingNumber);
 
     Long userId = 1L;
+
+    // (도로명코드+건물본번) 인기순 게시글 아이디 목록
+    List<Long> postIdListLikeCount = postListLikeCount.stream().map(Post::getPostId).toList();
+
+    // 인기순 게시글 아이디 목록 별 댓글 수 매핑
+    Map<Long, Long> commentCountMap =
+        commentRepository.countByPostIdList(postIdListLikeCount).stream()
+            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+
+    // (인기순 게시글 아이디 목록 + 사용자) 별 좋아요 존재 게시글 id 목록 반환
+    Set<Long> likedPostList =
+        likeRepository.findAllByUserUserIdAndPostPostIdIn(userId, postIdListLikeCount).stream()
+            .map(like -> like.getPost().getPostId())
+            .collect(Collectors.toSet());
+
     return postListLikeCount.stream()
         .map(
-            post -> {
-              long commentCount = commentRepository.countByPostPostId(post.getPostId());
-              boolean likedByUser = likeRepository.existsByUserUserIdAndPost(userId, post);
-              return postMapper.toPostResponse(
-                  post, post.getLikeCount(), commentCount, likedByUser);
-            })
-        .toList();
+            post ->
+                postMapper.toPostResponse(
+                    post,
+                    post.getLikeCount(),
+                    commentCountMap.getOrDefault(post.getPostId(), 0L),
+                    likedPostList.contains(post.getPostId())))
+        .collect(Collectors.toList());
   }
 }

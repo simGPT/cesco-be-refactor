@@ -96,4 +96,32 @@ class PostServiceQueryCountTest {
     // 실제 쿼리 수가 2N+1이 맞는지 검증(리팩토링 전 2N+1 문제 확인 용)
     // assertThat(queryCount).isEqualTo(1 + 2L * POST_COUNT); // 1 + 2*3 = 7
   }
+
+  @Test
+  void 게시글_3개_최신순_조회시_쿼리_3번_발생() {
+
+    Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
+    stats.clear();
+
+    postService.getAllPostsByRoadCodeAndBuildingNumberAndCreatedAtDesc(ROAD_CODE, BUILDING_NUMBER);
+
+    long queryCount = stats.getPrepareStatementCount();
+    log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 최신순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
+
+    assertThat(queryCount).isEqualTo(3);
+  }
+
+  @Test
+  void 게시글_3개_인기순_조회시_쿼리_3번_발생() {
+
+    Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
+    stats.clear();
+
+    postService.getAllPostsByRoadCodeBuildingNumberAndLikeCountDesc(ROAD_CODE, BUILDING_NUMBER);
+
+    long queryCount = stats.getPrepareStatementCount();
+    log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 인기순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
+
+    assertThat(queryCount).isEqualTo(3);
+  }
 }
