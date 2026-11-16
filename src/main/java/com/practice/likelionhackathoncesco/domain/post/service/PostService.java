@@ -136,7 +136,7 @@ public class PostService {
     }
 
     // 게시글 단일 조회 기능
-    @Transactional
+    @Transactional(readOnly = true)
     public PostResponse getPostById(Long postId) {
         log.info("[PostService] 게시글 단일 조회 시도 : postId = {}", postId);
         Post post =
