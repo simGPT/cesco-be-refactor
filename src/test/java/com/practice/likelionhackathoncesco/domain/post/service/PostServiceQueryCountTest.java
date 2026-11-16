@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 @Slf4j
-@DataJpaTest // @Transactional 이미 포함되어 있음
+@DataJpaTest
 @Import({PostService.class, PostMapper.class})
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class PostServiceQueryCountTest {
@@ -43,14 +43,11 @@ class PostServiceQueryCountTest {
   @Autowired private TestEntityManager testEntityManager;
 
   @BeforeEach
-  // 각 테스트 코드가 실행되기 전에 먼저 자동으로 실행
   void beforeSetUp() {
 
-    // 사용자 데이터 미리 넣기
     User user =
         userRepository.save(User.builder().username("cesco").payStatus(PayStatus.UNPAID).build());
 
-    // post, commemt, like 각각 3개씩 미리 데이터 넣어놓기
     for (int i = 1; i <= POST_COUNT; i++) {
       Post post =
           postRepository.save(
@@ -66,35 +63,8 @@ class PostServiceQueryCountTest {
       likeRepository.save(Like.builder().user(user).post(post).build());
     }
 
-    testEntityManager.flush(); // 실제 DB에 반영
+    testEntityManager.flush();
     testEntityManager.clear();
-  }
-
-  @Test
-  void 게시글_3개_조회시_2N_plus_1_쿼리_발생() {
-
-    // 서비스가 아니라 테스트코드 작성을 위해 미리 위에서 집어넣은 쿼리 개수는 측정하지 않기 위해 clear
-    Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
-    stats.clear();
-
-    // 조회 로직 수행
-    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER);
-
-    // 쿼리 수 측정 및 기록
-    long queryCount = stats.getPrepareStatementCount();
-    log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
-
-    //        log.info(
-    //                "[2N+1 문제 발생 시 쿼리 수 측정] 게시글 {}개 조회 시 실행된 쿼리 수: {}번 (예상: {}번)",
-    //                POST_COUNT,
-    //                queryCount,
-    //                1 + 2 * POST_COUNT);
-
-    // 리팩토링 후 실제 쿼리 수가 3이 맞는지 검증
-    assertThat(queryCount).isEqualTo(3);
-
-    // 실제 쿼리 수가 2N+1이 맞는지 검증(리팩토링 전 2N+1 문제 확인 용)
-    // assertThat(queryCount).isEqualTo(1 + 2L * POST_COUNT); // 1 + 2*3 = 7
   }
 
   @Test
@@ -103,7 +73,7 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeAndBuildingNumberAndCreatedAtDesc(ROAD_CODE, BUILDING_NUMBER);
+    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "latest");
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 최신순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
@@ -117,7 +87,7 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeBuildingNumberAndLikeCountDesc(ROAD_CODE, BUILDING_NUMBER);
+    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "popular");
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 인기순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);

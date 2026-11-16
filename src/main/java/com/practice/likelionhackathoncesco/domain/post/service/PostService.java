@@ -135,7 +135,7 @@ public class PostService {
   }
 
   // 게시글 단일 조회 기능
-  @Transactional
+  @Transactional(readOnly = true)
   public PostResponse getPostById(Long postId) {
     log.info("[PostService] 게시글 단일 조회 시도 : postId = {}", postId);
     Post post =
@@ -153,13 +153,20 @@ public class PostService {
     return postMapper.toPostResponse(post, post.getLikeCount(), commentCount, likedByUser);
   }
 
-  // (도로명코드+건물본번) 별 게시글 전체 조회 기능
+  // (도로명코드+건물본번) 별 게시글 목록 조회 기능
   @Transactional(readOnly = true)
   public List<PostResponse> getAllPostsByRoadCodeAndBuildingNumber(
-      String roadCode, String buildingNumber) {
-    log.info("[PostService] (도로명코드+건물본번) 별 게시글 전체 조회 시도");
+      String roadCode, String buildingNumber, String sort) {
+    log.info("[PostService] (도로명코드+건물본번) 별 게시글 목록 조회 시도");
+
     List<Post> postList =
-        postRepository.findAllByRoadCodeAndBuildingNumber(roadCode, buildingNumber);
+        switch (sort) {
+          case "popular" -> postRepository.findAllByRoadCodeAndBuildingNumberOrderByLikeCountDesc(
+              roadCode, buildingNumber);
+          case "latest" -> postRepository.findAllByRoadCodeAndBuildingNumberOrderByCreatedAtDesc(
+              roadCode, buildingNumber);
+          default -> throw new CustomException(PostErrorCode.INVALID_POST_SORT);
+        };
 
     if (postList.isEmpty()) {
       return List.of();
@@ -181,79 +188,6 @@ public class PostService {
             .collect(Collectors.toSet());
 
     return postList.stream()
-        .map(
-            post ->
-                postMapper.toPostResponse(
-                    post,
-                    post.getLikeCount(),
-                    commentCountMap.getOrDefault(post.getPostId(), 0L),
-                    likedPostList.contains(post.getPostId())))
-        .collect(Collectors.toList());
-  }
-
-  // (도로명코드+건물본번) 별 게시글 최신순 조회 기능
-  @Transactional(readOnly = true)
-  public List<PostResponse> getAllPostsByRoadCodeAndBuildingNumberAndCreatedAtDesc(
-      String roadCode, String buildingNumber) {
-    log.info("[PostService] (도로명코드+건물본번) 별 게시글 최신순 조회 시도");
-    List<Post> postListCreatedAtDesc =
-        postRepository.findAllByRoadCodeAndBuildingNumberOrderByCreatedAtDesc(
-            roadCode, buildingNumber);
-
-    Long userId = 1L;
-
-    // (도로명코드+건물본번) 최신순 게시글 아이디 목록
-    List<Long> postIdListCreatedAtDesc =
-        postListCreatedAtDesc.stream().map(Post::getPostId).toList();
-
-    // 최신순 게시글 아이디 목록 별 댓글 수 매핑
-    Map<Long, Long> commentCountMap =
-        commentRepository.countByPostIdList(postIdListCreatedAtDesc).stream()
-            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
-
-    // (최신순 게시글 아이디 목록 + 사용자) 별 좋아요 존재 게시글 id 목록 반환
-    Set<Long> likedPostList =
-        likeRepository.findAllByUserUserIdAndPostPostIdIn(userId, postIdListCreatedAtDesc).stream()
-            .map(like -> like.getPost().getPostId())
-            .collect(Collectors.toSet());
-
-    return postListCreatedAtDesc.stream()
-        .map(
-            post ->
-                postMapper.toPostResponse(
-                    post,
-                    post.getLikeCount(),
-                    commentCountMap.getOrDefault(post.getPostId(), 0L),
-                    likedPostList.contains(post.getPostId())))
-        .collect(Collectors.toList());
-  }
-
-  // (도로명코드+건물본번) 별 게시글 인기순 조회 기능
-  @Transactional(readOnly = true)
-  public List<PostResponse> getAllPostsByRoadCodeBuildingNumberAndLikeCountDesc(
-      String roadCode, String buildingNumber) {
-    log.info("[PostService] (도로명코드+건물본번) 별 게시글 인기순 조회 시도");
-    List<Post> postListLikeCount =
-        postRepository.findAllByRoadCodeAndBuildingNumberOrderByLikeCountDesc(
-            roadCode, buildingNumber);
-
-    Long userId = 1L;
-
-    // (도로명코드+건물본번) 인기순 게시글 아이디 목록
-    List<Long> postIdListLikeCount = postListLikeCount.stream().map(Post::getPostId).toList();
-
-    // 인기순 게시글 아이디 목록 별 댓글 수 매핑
-    Map<Long, Long> commentCountMap =
-        commentRepository.countByPostIdList(postIdListLikeCount).stream()
-            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
-
-    // (인기순 게시글 아이디 목록 + 사용자) 별 좋아요 존재 게시글 id 목록 반환
-    Set<Long> likedPostList =
-        likeRepository.findAllByUserUserIdAndPostPostIdIn(userId, postIdListLikeCount).stream()
-            .map(like -> like.getPost().getPostId())
-            .collect(Collectors.toSet());
-
-    return postListLikeCount.stream()
         .map(
             post ->
                 postMapper.toPostResponse(
