@@ -12,25 +12,25 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PostCursorCodec {
 
-    private final ObjectMapper objectMapper;
+  private final ObjectMapper objectMapper;
 
-    // 인코딩 : 직렬화 → Base64
-    public String encode(PostCursor postCursor) {
-        try {
-            String json = objectMapper.writeValueAsString(postCursor);
-            return Base64.getUrlEncoder().encodeToString(json.getBytes());
-        } catch (Exception e) {
-            throw new CustomException(PostErrorCode.INVALID_CURSOR);
-        }
+  // 인코딩 : 직렬화 → Base64
+  public String encode(PostCursor postCursor) {
+    try {
+      String json = objectMapper.writeValueAsString(postCursor);
+      return Base64.getUrlEncoder().encodeToString(json.getBytes());
+    } catch (Exception e) {
+      throw new CustomException(PostErrorCode.INVALID_CURSOR);
     }
+  }
 
-    // 디코딩 : Base64 → 역직렬화
-    public PostCursor decode(String cursorString) {
-        try {
-            byte[] decoded = Base64.getUrlDecoder().decode(cursorString);
-            return objectMapper.readValue(decoded, PostCursor.class);
-        } catch (Exception e) {
-            throw new CustomException(PostErrorCode.INVALID_CURSOR);
-        }
+  // 디코딩 : Base64 → 역직렬화
+  public PostCursor decode(String cursorString) {
+    try {
+      byte[] decoded = Base64.getUrlDecoder().decode(cursorString);
+      return objectMapper.readValue(decoded, PostCursor.class);
+    } catch (Exception e) {
+      throw new CustomException(PostErrorCode.INVALID_CURSOR);
     }
+  }
 }
