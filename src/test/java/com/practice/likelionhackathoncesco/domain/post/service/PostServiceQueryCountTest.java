@@ -75,7 +75,8 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "latest", null, 20);
+    postService.getAllPostsByRoadCodeAndBuildingNumber(
+        ROAD_CODE, BUILDING_NUMBER, "latest", null, 20);
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 최신순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
@@ -89,7 +90,8 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "popular", null, 20);
+    postService.getAllPostsByRoadCodeAndBuildingNumber(
+        ROAD_CODE, BUILDING_NUMBER, "popular", null, 20);
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 인기순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
