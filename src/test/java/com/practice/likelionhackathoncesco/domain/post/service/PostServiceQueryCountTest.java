@@ -19,6 +19,7 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
@@ -26,7 +27,8 @@ import org.springframework.test.context.TestPropertySource;
 
 @Slf4j
 @DataJpaTest
-@Import({PostService.class, PostMapper.class})
+@AutoConfigureJson
+@Import({PostService.class, PostMapper.class, PostCursorCodec.class})
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class PostServiceQueryCountTest {
 
@@ -73,7 +75,7 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "latest");
+    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "latest", null, 20);
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 최신순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
@@ -87,7 +89,7 @@ class PostServiceQueryCountTest {
     Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
     stats.clear();
 
-    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "popular");
+    postService.getAllPostsByRoadCodeAndBuildingNumber(ROAD_CODE, BUILDING_NUMBER, "popular", null, 20);
 
     long queryCount = stats.getPrepareStatementCount();
     log.info("[리팩 후 쿼리 수 측정] 게시글 {}개 인기순 조회 시 실행된 쿼리 수: {}번 (예상: {}번)", POST_COUNT, queryCount, 3);
