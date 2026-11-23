@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.practice.likelionhackathoncesco.domain.post.dto.cursor.PostCursor;
 import com.practice.likelionhackathoncesco.domain.post.exception.PostErrorCode;
 import com.practice.likelionhackathoncesco.global.exception.CustomException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,7 @@ public class PostCursorCodec {
   public String encode(PostCursor postCursor) {
     try {
       String json = objectMapper.writeValueAsString(postCursor);
-      return Base64.getUrlEncoder().encodeToString(json.getBytes());
+      return Base64.getUrlEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new CustomException(PostErrorCode.INVALID_CURSOR);
     }
