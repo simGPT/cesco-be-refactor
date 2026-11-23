@@ -2,6 +2,7 @@ package com.practice.likelionhackathoncesco.domain.post.controller;
 
 import com.practice.likelionhackathoncesco.domain.post.dto.request.CreatePostRequest;
 import com.practice.likelionhackathoncesco.domain.post.dto.request.UpdatePostRequest;
+import com.practice.likelionhackathoncesco.domain.post.dto.response.PostPageResponse;
 import com.practice.likelionhackathoncesco.domain.post.dto.response.PostResponse;
 import com.practice.likelionhackathoncesco.domain.post.service.PostService;
 import com.practice.likelionhackathoncesco.global.response.BaseResponse;
@@ -9,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -64,16 +64,20 @@ public class PostController {
 
   // (도로명코드+건물본번) 별 게시글 전체 조회 API
   @Operation(
-      summary = "(도로명코드+건물본번) 별 게시글 전체 조회",
+      summary = "(도로명코드+건물본번) 별 게시글 목록 조회",
       description = "(도로명코드+건물본번) 페이지에서 특정 주소를 검색완료 했을때 호출되는 API")
   @GetMapping("/posts/{roadCode}/{buildingNumber}")
-  public ResponseEntity<BaseResponse<List<PostResponse>>> getPostByRoadCodeAndBuildingNumber(
+  public ResponseEntity<BaseResponse<PostPageResponse>> getPostByRoadCodeAndBuildingNumber(
       @Parameter(description = "조회할 게시글 목록의 도로명코드") @PathVariable String roadCode,
       @Parameter(description = "조회할 게시글 목록의 건물본번") @PathVariable String buildingNumber,
       @Parameter(description = "조회할 게시글 목록의 정렬기준(최신 순/인기 순)") @RequestParam(defaultValue = "latest")
-          String sort) {
-    List<PostResponse> postList =
-        postService.getAllPostsByRoadCodeAndBuildingNumber(roadCode, buildingNumber, sort);
-    return ResponseEntity.ok(BaseResponse.success("(도로명코드+건물본번) 별 게시글 목록 조회 완료", postList));
+          String sort,
+      @Parameter(description = "이전 게시글 목록 조회 시 응답 받았던 커서 값") @RequestParam(required = false)
+          String cursor,
+      @Parameter(description = "한 번에 불러올 게시글 목록 수") @RequestParam(defaultValue = "20") int size) {
+    PostPageResponse postPageResponse =
+        postService.getAllPostsByRoadCodeAndBuildingNumber(
+            roadCode, buildingNumber, sort, cursor, size);
+    return ResponseEntity.ok(BaseResponse.success("(도로명코드+건물본번) 별 게시글 목록 조회 완료", postPageResponse));
   }
 }
